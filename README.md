@@ -1,11 +1,9 @@
-ゼロから作る Deep Learning ❻ —LLM編
-=============================
+ゼロから作る Deep Learning ❻ —LLM編（学習用）
+==========================================
 
-<!-- [<img src="https://raw.githubusercontent.com/oreilly-japan/deep-learning-from-scratch-5/images/cover.png" width="200px">](https://www.amazon.co.jp/dp/4814400594/) -->
+書籍『[ゼロから作るDeep Learning ❻](https://www.amazon.co.jp/dp/4814401612)』（オライリー・ジャパン発行）の学習用リポジトリです。
 
-
-書籍『[ゼロから作るDeep Learning ❻](https://www.amazon.co.jp/dp/4814401612)』（オライリー・ジャパン発行）のサポートサイトです。本書籍で使用するソースコードがまとめられています。
-
+元リポジトリ: https://github.com/oreilly-japan/deep-learning-from-scratch-6
 
 ## ファイル構成
 
@@ -52,8 +50,4 @@ $ python ch02/10_gpt.py
 
 ## 正誤表
 
-本書の正誤情報は以下のページで公開しています。
-
-https://github.com/oreilly-japan/deep-learning-from-scratch-6/wiki/errata
-
-本ページに掲載されていない誤植など間違いを見つけた方は、[japan@oreilly.co.jp](<mailto:japan@oreilly.co.jp>)までお知らせください。
+本書の正誤情報は[公式リポジトリ](https://github.com/oreilly-japan/deep-learning-from-scratch-6/wiki/errata)で公開されています。
