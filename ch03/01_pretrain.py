@@ -1,4 +1,6 @@
 import os, sys
+import signal
+import traceback
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 sys.path.append('.')
 
@@ -22,7 +24,7 @@ model_save_path = 'codebot/model_pretrain.pt'
 # ハイパーパラメータ
 context_len = 256
 vocab_size = 1000
-batch_size = 32
+batch_size = 128
 learning_rate = 3e-4
 max_iters = 20000
 embed_dim = 384
@@ -48,7 +50,12 @@ class TokenDataset(Dataset):
 # データ準備
 ids = np.fromfile(data_path, dtype=np.uint16)
 dataset = TokenDataset(ids, context_len)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+dataloader = DataLoader(
+    dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    pin_memory=True
+)
 
 # トークナイザ、モデル、オプティマイザ
 tokenizer = BPETokenizer.load_from(tokenizer_path)
@@ -67,19 +74,44 @@ losses = []
 data_iter = cycle(dataloader)  # 無限ループ化
 pbar = tqdm(range(max_iters))
 
-for i in pbar:
-    batch_x, batch_y = next(data_iter)
-    batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+# シグナルハンドラ（Ctrl+C検出用）
+interrupted = False
+def signal_handler(signum, frame):
+    global interrupted
+    interrupted = True
+    print(f"\n[INFO] シグナル {signum} を受信しました（Ctrl+C）")
+    raise KeyboardInterrupt
 
-    logits = model(batch_x)
-    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), batch_y.view(-1))
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+try:
+    for i in pbar:
+        batch_x, batch_y = next(data_iter)
+        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
 
-    losses.append(loss.item())
-    pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+        logits = model(batch_x)
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), batch_y.view(-1))
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        losses.append(loss.item())
+        pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+
+except KeyboardInterrupt:
+    print("\n[終了] ユーザーによる中断（Ctrl+C）")
+except torch.cuda.OutOfMemoryError:
+    print("\n[エラー] CUDAメモリ不足（OOM）")
+    print(f"  - batch_size を小さくしてください（現在: {batch_size}）")
+except Exception as e:
+    print(f"\n[エラー] 予期しないエラーが発生しました:")
+    print(f"  - 種類: {type(e).__name__}")
+    print(f"  - 詳細: {e}")
+    traceback.print_exc()
+finally:
+    print(f"\n[INFO] {len(losses)} イテレーション完了")
 
 # 結果を保存
 plt.figure(figsize=(10, 6))
@@ -87,6 +119,6 @@ plt.plot(losses)
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
 plt.grid(True)
-plt.savefig('loss.png')
+plt.savefig('codebot/loss.png')
 
 model.save(model_save_path)
